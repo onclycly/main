@@ -3,8 +3,19 @@
 
 getgenv().SunaStack = false
 getgenv().NoClip = false
+getgenv().AutoPeli = false
 
 --- FUNCTIONS
+
+-- AUTO FARM
+
+function AutoFarmPeli()
+    spawn (function ()
+        while getgenv().AutoPeli do
+            print ("OTW")
+        end
+    end)
+end
 
 -- FOV CHANGER
 
@@ -230,7 +241,7 @@ local Window = ClyHubUI:CreateWindow({
 		FolderName = "Cly Hub Config",
 		FileName = "Cly Hub"
 	},
-	KeySystem = true, -- Set this to true to use their key system
+	KeySystem = false, -- Set this to true to use their key system
 	KeySettings = {
 		Title = "Cly Hub Login",
 		Subtitle = "Enter Key",
@@ -312,6 +323,28 @@ local LowServerToggle = ServersTab:CreateToggle({
 	Flag = "LowServerToggle",
 	Callback = function (Value)
 		LowServerHopEnabled = Value
+	end
+})
+
+-- AUTO FARM TAB
+
+local AutoFarmTab = Window:CreateTab("Farm")
+
+-- AUTO PELI SECTION
+
+local AutoPeliSection = AutoFarmTab:CreateSection("Auto Peli")
+
+local AutoPeliLabel = AutoFarmTab:CreateLabel("Auto Farms Chests on Starter Island")
+
+local AutoPeliToggle = AutoFarmTab:CreateToggle({
+	Name = "Auto Peli",
+	CurrentValue = false,
+	Flag = "AutoPeliToggle",
+	Callback = function (Value)
+		getgenv().AutoPeli = Value
+		while Value do
+			AutoFarmPeli()
+		end
 	end
 })
 
