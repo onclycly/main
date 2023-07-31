@@ -6,12 +6,26 @@ getgenv().NoClip = false
 
 --- FUNCTIONS
 
+-- FOV CHANGER
+
+function FovChanger(FOV)
+	spawn(function ()
+		local FovNumber = FOV
+		local Camera = workspace.CurrentCamera
+		Camera.FieldOfView = FovNumber
+	end)
+end
+
 -- TELEPORT
 
-function TeleportIsland(Island,Speed)
-	spawn (function ()
+function InstantTPFishman()
+	spawn(function ()
+		local teleport_table = {
+			location = Vector3.new(5639.86865, -92.7621536, -16611.4688), 
+		}
+		
 		local tween_s = game:GetService('TweenService')
-		local tweeninfo = TweenInfo.new(Speed,Enum.EasingStyle.Linear)
+		local tweeninfo = TweenInfo.new(1,Enum.EasingStyle.Linear)
 		
 		local lp = game.Players.LocalPlayer
 		
@@ -21,7 +35,28 @@ function TeleportIsland(Island,Speed)
 				local cf = CFrame.new(v)
 				local a = tween_s:Create(lp.Character.HumanoidRootPart,tweeninfo,{CFrame=cf})
 				a:Play()
-				 --a.Completed:Wait()
+				 a.Completed:Wait()	
+			end
+		end
+		
+		bypass_teleport(teleport_table.location)
+	end)
+end
+
+function TeleportIsland(Island,Speed)
+	spawn (function ()
+		local tween_s = game:GetService('TweenService')
+		local tweeninfo = TweenInfo.new(Speed,Enum.EasingStyle.Quad)
+		
+		local lp = game.Players.LocalPlayer
+		
+		function bypass_teleport(v)
+			if lp.Character and 
+			lp.Character:FindFirstChild('HumanoidRootPart') then
+				local cf = CFrame.new(v)
+				local a = tween_s:Create(lp.Character.HumanoidRootPart,tweeninfo,{CFrame=cf})
+				a:Play()
+				a.Completed:Wait()
 				-- print('Teleporting Done!')
 			end
 		end
@@ -221,7 +256,6 @@ local NoClipToggle = LocalPlayerTab:CreateToggle({
 	Flag = "NoClipToggle",
 	Callback = function (Value)
 		getgenv().NoClip = Value
-
 		if Value then
 			NoClip()
 		else
@@ -281,48 +315,103 @@ local LowServerToggle = ServersTab:CreateToggle({
 	end
 })
 
+-- VISUALS TAB
+
+local VisualsTab = Window:CreateTab("Visuals")
+
+-- FOV SECTION
+
+local FOVChangeSection = VisualsTab:CreateSection("FOV Changer")
+
+local FOVValue = 70
+
+local FOVSlider = VisualsTab:CreateSlider({
+	Name = "Unlock FOV",
+	Range = {0,120},
+	Increment = 10,
+	Suffix = "Field Of View",
+	CurrentValue = 70,
+	Flag = "FOVSlider",
+	Callback = function (Value)
+		FOVValue = Value
+		FovChanger(FOVValue)
+	end
+})
+
 -- TELEPORTS TAB
 
 local TeleportsTab = Window:CreateTab("Teleport")
 
-local TPSpeed = 3
+local TPSpeed = 50
 
--- ISLAND SECTION
+local TPIsland = "None Selected"
 
-local TeleportIslandSection = TeleportsTab:CreateSection("Teleport to Island")
+-- TELEPORT SETTINGS SECTION
+
+local TeleportSettingsSection = TeleportsTab:CreateSection("Settings")
 
 local TPSpeedSlider = TeleportsTab:CreateSlider({
 	Name = "Teleport Speed",
-	Range = {0,10},
+	Range = {0,100},
 	Increment = 1,
 	Suffix = "Speed",
-	CurrentValue = 0,
+	CurrentValue = TPSpeed,
 	Flag = "TeleportSpeedSlider",
 	Callback = function (Value)
 		TPSpeed = Value
 	end
 })
 
+-- ISLAND SECTION
+
+local TeleportIslandSection = TeleportsTab:CreateSection("Teleport to Island")
+
+local InstantTeleportFishman = TeleportsTab:CreateButton({
+	Name = "Instant TP To Fishman Island",
+	Callback = function ()
+		InstantTPFishman()
+	end
+})
+
 local teleport_table = {
-	TownOfBeginnings = Vector3.new(965.000061, 7.99998617, 1194.25), -- your desired position
+	["Town Of Beginnings"] = Vector3.new(965.000061, 7.99998617, 1194.25), -- your desired position
+	["Sandora"] = Vector3.new(-1316.08899, 9.88485718, 1129.94995),
 }
 
 
 local IslandTeleportDropdown = TeleportsTab:CreateDropdown({
 	Name = "Select Island",
-	Options = {"Town Of Beginnings","Shandora"},
+	Options = {"Town Of Beginnings",
+	"Sandora",
+	"More Coming Soon"},
 	CurrentOption = "None Selected",
 	Flag = "IslandTeleport", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
 	Callback = function(Option)
-		
-		TeleportIsland(teleport_table.TownOfBeginnings,2)
-
+		TPIsland = Option[1]
 	end,
+})
+
+local TeleportIslandButton = TeleportsTab:CreateButton({
+	Name = "Teleport To Selected Island",
+	Callback = function ()
+		if TPIsland == "None Selected" then
+            print("Please select an island from the dropdown.")
+        else
+            local destination = teleport_table[TPIsland]
+            if destination then
+                TeleportIsland(destination, TPSpeed)
+            else
+                print("Destination not found in the teleport table.")
+            end
+        end
+	end
 })
 
 -- SETTINGS TAB
 
 local SettingsTab = Window:CreateTab("Settings")
+
+local CloseLabel = SettingsTab:CreateLabel("F5 To Close/Open UI")
 
 local ConfigSection = SettingsTab:CreateSection("Misc")
 
@@ -341,6 +430,16 @@ local FPSSlider = SettingsTab:CreateSlider({
 -- KEYBINDS SECTION
 
 local KeybindsSection = SettingsTab:CreateSection("Keybinds")
+
+local NoClipBind = SettingsTab:CreateKeybind({
+	Name = "No Clip Keybind",
+	CurrentKeybind = "L",
+	HoldToInteract = false,
+	Flag = "NoClipKeybind",
+	Callback = function ()
+		NoClipToggle:Set(not NoClipToggle.CurrentValue)
+	end
+})
 
 local SunaStackKeybind = SettingsTab:CreateKeybind({
 	Name = "Suna X Stack Keybind",
@@ -361,6 +460,17 @@ local SunaReleaseKeybind = SettingsTab:CreateKeybind({
 		SunaRelease()
 	end
 })
+
+local PrintKeybind = SettingsTab:CreateKeybind({
+	Name = "Print",
+	CurrentKeybind = "T",
+	HoldToInteract = false,
+	Flag = "Keybindss",
+	Callback = function ()
+		print(game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame)
+	end
+})
+
 
 -- local Button = LocalPlayerTab:CreateButton({
 -- 	Name = "Button Example",
