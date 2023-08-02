@@ -46,7 +46,7 @@ function InstantTPFishman()
 				local cf = CFrame.new(v)
 				local a = tween_s:Create(lp.Character.HumanoidRootPart,tweeninfo,{CFrame=cf})
 				a:Play()
-				 a.Completed:Wait()	
+				-- a.Completed:Wait()	
 			end
 		end
 		
@@ -54,25 +54,47 @@ function InstantTPFishman()
 	end)
 end
 
-function TeleportIsland(Island,Speed)
-	spawn (function ()
-		local tween_s = game:GetService('TweenService')
-		local tweeninfo = TweenInfo.new(Speed,Enum.EasingStyle.Quad)
-		
-		local lp = game.Players.LocalPlayer
-		
-		function bypass_teleport(v)
-			if lp.Character and 
-			lp.Character:FindFirstChild('HumanoidRootPart') then
-				local cf = CFrame.new(v)
-				local a = tween_s:Create(lp.Character.HumanoidRootPart,tweeninfo,{CFrame=cf})
-				a:Play()
-				a.Completed:Wait()
-				-- print('Teleporting Done!')
-			end
-		end
-		bypass_teleport(Island)
-	end)
+local tween
+
+local function TeleportIsland(Island, Speed)
+    local lp = game.Players.LocalPlayer
+    local humanoidRootPart = lp.Character and lp.Character:FindFirstChild('HumanoidRootPart')
+    if not humanoidRootPart then
+        return  -- Exit the function if the character is not present
+    end
+
+    local characterRemovingConnection
+    local function onCharacterRemoving()
+        -- Character is being removed (died), stop the tween and disconnect the event
+        if tween then
+            tween:Cancel()
+        end
+        if characterRemovingConnection then
+            characterRemovingConnection:Disconnect()
+        end
+    end
+
+    characterRemovingConnection = lp.CharacterRemoving:Connect(onCharacterRemoving)
+
+    local targetPos = Island
+    local startPos = humanoidRootPart.Position
+    local direction = (targetPos - startPos).unit
+    local distance = (targetPos - startPos).Magnitude
+    local timeToTeleport = distance / Speed
+
+    tween = game:GetService("TweenService"):Create(humanoidRootPart, TweenInfo.new(timeToTeleport), {CFrame = CFrame.new(targetPos)})
+    tween:Play()
+
+    tween.Completed:Connect(function()
+        if humanoidRootPart.Parent then
+            humanoidRootPart.CFrame = CFrame.new(targetPos)
+        end
+
+        -- Character has reached the destination or died, disconnect the event
+        if characterRemovingConnection then
+            characterRemovingConnection:Disconnect()
+        end
+    end)
 end
 
 -- NOCLIP
@@ -227,13 +249,38 @@ end
 
 local ClyHubUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/onclycly/ui-source/main/loadstring'))()
 
+
 local function getKeyFromPastebin(link)
     local key = game:HttpGet(link)
     return key
 end
 
+	-- CHECKS WHO IS LOGGED IN
+
+	local userName 
+
+	local JaredHWID = "2A98BE20-F47D-4AEB-B4A3-74F3A9761D6F"
+
+	local ClyHWID = "9A99F9FF-F9C5-40BA-887B-1A090F096258"
+
+	local RonaldHWID = "FECDC993-8EBD-4DA9-A30F-B391E889FC94"
+
+	local HWID = game:GetService("RbxAnalyticsService"):GetClientId()
+
+	if HWID == JaredHWID then 
+		userName = "Jared"
+	elseif HWID == ClyHWID then
+		userName = "Cly"
+	elseif HWID == RonaldHWID then
+		userName = "Ronald"
+	else
+		userName = "Unknown"
+	end
+
+	-- CREATE WINDOW
+
 local Window = ClyHubUI:CreateWindow({
-	Name = "Cly Hub",
+	Name = "Cly Hub | ".. "Logged in : ".. userName,
 	LoadingTitle = "Grand Piece Online",
 	LoadingSubtitle = "By Clycly",
 	ConfigurationSaving = {
@@ -241,11 +288,11 @@ local Window = ClyHubUI:CreateWindow({
 		FolderName = "Cly Hub Config",
 		FileName = "Cly Hub"
 	},
-	KeySystem = false, -- Set this to true to use their key system
+	KeySystem = true, -- Set this to true to use their key system
 	KeySettings = {
 		Title = "Cly Hub Login",
 		Subtitle = "Enter Key",
-		Note = "Invalid Key? PM",
+		Note = "Invalid Key? Baka Nigger ka",
 		SaveKey = true,
 		Key = getKeyFromPastebin("https://pastebin.com/raw/h09XGjK8")
 	}
@@ -256,6 +303,22 @@ local Window = ClyHubUI:CreateWindow({
 -- LOCAL PLAYER TAB
 
 local LocalPlayerTab = Window:CreateTab("Local Player") -- Title, Image
+
+-- CHEST COUNTER
+
+local chestStatus
+
+if userName == "Jared" then
+	chestStatus = "Paid"
+elseif userName == "Cly" then
+	chestStatus = "Owner"
+elseif userName == "Ronald" then
+	chestStatus = "Paid"
+else
+	chestStatus = "Unknown"
+end
+
+local chestCountLabel = LocalPlayerTab:CreateLabel("Status : ".. chestStatus)
 
 -- PLAYER SECTION
 
@@ -275,9 +338,10 @@ local NoClipToggle = LocalPlayerTab:CreateToggle({
 	end
 })
 
--- MOVESTACK SECTION
 
-local MovestackSection = LocalPlayerTab:CreateSection("Movestacks")
+-- MOVESTACKS SECTION
+
+local MovestacksSection = LocalPlayerTab:CreateSection("Movestacks")
 
 local SunaXStackToggle = LocalPlayerTab:CreateToggle({
 	Name = "Suna X Stack",
@@ -342,7 +406,7 @@ local AutoPeliToggle = AutoFarmTab:CreateToggle({
 	Flag = "AutoPeliToggle",
 	Callback = function (Value)
 		getgenv().AutoPeli = Value
-		while Value do
+		if Value then
 			AutoFarmPeli()
 		end
 	end
@@ -375,7 +439,7 @@ local FOVSlider = VisualsTab:CreateSlider({
 
 local TeleportsTab = Window:CreateTab("Teleport")
 
-local TPSpeed = 50
+local TPSpeed = 35
 
 local TPIsland = "None Selected"
 
@@ -395,6 +459,13 @@ local TPSpeedSlider = TeleportsTab:CreateSlider({
 	end
 })
 
+local CancelTPButton = TeleportsTab:CreateButton({
+	Name = "Cancel Teleport",
+	Callback = function ()
+		tween:Cancel()
+	end
+})
+
 -- ISLAND SECTION
 
 local TeleportIslandSection = TeleportsTab:CreateSection("Teleport to Island")
@@ -409,14 +480,23 @@ local InstantTeleportFishman = TeleportsTab:CreateButton({
 local teleport_table = {
 	["Town Of Beginnings"] = Vector3.new(965.000061, 7.99998617, 1194.25), -- your desired position
 	["Sandora"] = Vector3.new(-1316.08899, 9.88485718, 1129.94995),
+	["World Scroll"] = Vector3.new(-12185.5, 3.27369881, -18546),
+	["Reverse Mountain"] = Vector3.new(-14338, 18.7268486, -9446),
+	["Cafe"] = Vector3.new(8456.7334, 68.7727356, 10512.8535),
+	["Factory Suna Spot"] = Vector3.new(8532.37598, 447.789124, 11679.8857),
+
 }
 
 
 local IslandTeleportDropdown = TeleportsTab:CreateDropdown({
 	Name = "Select Island",
-	Options = {"Town Of Beginnings",
+	Options = {
+	"Factory Suna Spot",
+	"Town Of Beginnings",
 	"Sandora",
-	"More Coming Soon"},
+	"Reverse Mountain",
+	"World Scroll",
+	"Cafe"},
 	CurrentOption = "None Selected",
 	Flag = "IslandTeleport", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
 	Callback = function(Option)
@@ -434,7 +514,7 @@ local TeleportIslandButton = TeleportsTab:CreateButton({
             if destination then
                 TeleportIsland(destination, TPSpeed)
             else
-                print("Destination not found in the teleport table.")
+                print("Destination not found")
             end
         end
 	end
