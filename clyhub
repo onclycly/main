@@ -309,11 +309,11 @@ local LocalPlayerTab = Window:CreateTab("Local Player") -- Title, Image
 local chestStatus
 
 if userName == "Jared" then
-	chestStatus = "Paid"
+	chestStatus = "Unpaid"
 elseif userName == "Cly" then
 	chestStatus = "Owner"
 elseif userName == "Ronald" then
-	chestStatus = "Paid"
+	chestStatus = "Unpaid"
 else
 	chestStatus = "Unknown"
 end
