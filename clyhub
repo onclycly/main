@@ -3,18 +3,30 @@
 
 getgenv().SunaStack = false
 getgenv().NoClip = false
-getgenv().AutoPeli = false
+getgenv().AutoTweenChests = false
 
 --- FUNCTIONS
 
--- AUTO FARM
+-- WHITE SCREEN
 
-function AutoFarmPeli()
-    spawn (function ()
-        while getgenv().AutoPeli do
-            print ("OTW")
-        end
-    end)
+function WhiteScreen(reducecpu)
+	spawn(function ()
+		game:GetService('RunService'):Set3dRenderingEnabled(reducecpu)	
+	end)
+end
+
+-- ANTI AFK
+
+function AntiAFK ()
+	spawn (function ()
+		game:GetService("Players").LocalPlayer.Idled:connect(
+   	 	function()
+        game:GetService("VirtualUser"):Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+        wait(1)
+        game:GetService("VirtualUser"):Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+    	end
+		)
+	end)
 end
 
 -- FOV CHANGER
@@ -29,19 +41,21 @@ end
 
 -- TELEPORT
 
+-- INSTANT TP TO FISHMAN
+
 function InstantTPFishman()
 	spawn(function ()
 		local teleport_table = {
-			location = Vector3.new(5639.86865, -92.7621536, -16611.4688), 
+			location = Vector3.new(5639.86865, -92.7621536, -16611.4688),
 		}
-		
+
 		local tween_s = game:GetService('TweenService')
 		local tweeninfo = TweenInfo.new(1,Enum.EasingStyle.Linear)
-		
+
 		local lp = game.Players.LocalPlayer
-		
+
 		function bypass_teleport(v)
-			if lp.Character and 
+			if lp.Character and
 			lp.Character:FindFirstChild('HumanoidRootPart') then
 				local cf = CFrame.new(v)
 				local a = tween_s:Create(lp.Character.HumanoidRootPart,tweeninfo,{CFrame=cf})
@@ -49,12 +63,15 @@ function InstantTPFishman()
 				-- a.Completed:Wait()	
 			end
 		end
-		
+
 		bypass_teleport(teleport_table.location)
 	end)
 end
 
+-- TELELPORT ISLAND
+
 local tween
+local isTeleporting = false
 
 local function TeleportIsland(Island, Speed)
     local lp = game.Players.LocalPlayer
@@ -82,8 +99,10 @@ local function TeleportIsland(Island, Speed)
     local distance = (targetPos - startPos).Magnitude
     local timeToTeleport = distance / Speed
 
-    tween = game:GetService("TweenService"):Create(humanoidRootPart, TweenInfo.new(timeToTeleport), {CFrame = CFrame.new(targetPos)})
+    --tween = game:GetService("TweenService"):Create(humanoidRootPart, TweenInfo.new(timeToTeleport), {CFrame = CFrame.new(targetPos)})
+	tween = game:GetService("TweenService"):Create(humanoidRootPart, TweenInfo.new(timeToTeleport, Enum.EasingStyle.Linear), {CFrame = CFrame.new(targetPos)})
     tween:Play()
+	isTeleporting = true
 
     tween.Completed:Connect(function()
         if humanoidRootPart.Parent then
@@ -96,6 +115,82 @@ local function TeleportIsland(Island, Speed)
         end
     end)
 end
+
+-- AUTO COLLECT CHESTS
+
+function AutoCollectChest()
+	spawn (function ()
+				local ChestPart = "Part"  -- Change this to the name of your specific part
+
+				for _, v in pairs(workspace:GetDescendants()) do
+					if v:IsA("Part") and v.Name == ChestPart then
+						local clickDetector = v:FindFirstChild("ClickDetector")
+						if clickDetector then
+							fireclickdetector(clickDetector, 1)
+							isTeleporting = false
+						end
+					end
+				end
+	end)
+end
+
+-- AUTO TWEEN TO CHESTS
+
+local specificPartName = "Part"  -- Change this to the name of your specific part
+local proximityThreshold = 6  -- Adjust this threshold as needed
+
+
+function TweenToChests()
+    spawn(function()
+        local function checkForPart()
+            local envFolder = workspace:FindFirstChild("Env")
+            if not envFolder then
+                print("Env folder not found in workspace.")
+                return
+            end
+
+            local partFound = false
+			local plyr = game.Players.LocalPlayer
+            local playerPosition = plyr.Character and plyr.Character:FindFirstChild("HumanoidRootPart") and plyr.Character.HumanoidRootPart.Position
+
+            for _, v in pairs(envFolder:GetDescendants()) do
+                if v.Name == specificPartName then
+                    partFound = true
+					local distance = (v.Position - playerPosition).Magnitude
+					if distance <= proximityThreshold then
+						AutoCollectChest()
+					end
+
+					if isTeleporting then
+						print('going to chest')
+					else
+						TeleportIsland(v.Position,20)
+					end
+
+                    break
+                end
+            end
+
+            if partFound then
+                print("The part is in the 'Env' folder.")
+            else
+                print("The part is not in the 'Env' folder.")
+            end
+        end
+
+        -- Initial check and continuous checking with a wait
+        checkForPart()
+
+        while getgenv().AutoTweenChests do
+            wait(1)  -- Adjust the wait time as needed
+            checkForPart()
+        end
+    end)
+end
+
+-- if plyr.character ~= v.Position then
+-- 	TeleportIsland(v.Position,10)  -- Trigger the slower tween to teleport to the found part
+-- 	end
 
 -- NOCLIP
 
@@ -139,7 +234,7 @@ end
 
 -- MOVESTACKS
 
-function SunaStack() 
+function SunaStack()
 	spawn(function()
 		while getgenv().SunaStack do
 			task.wait()
@@ -155,19 +250,17 @@ function SunaStack()
 end
 
 function SunaRelease()
-	if getgenv().SunaStack == true then
 	local args = {
 		[1] = CFrame.new(-3688.59082, 18.1677742, 423.727539, 0.998908818, -3.40270361e-07, 0.046702411, 2.04845273e-05, 0.999999881, -0.00043085363, -0.0467024073, 0.000431340188, 0.998908758)
 	 }
-		
+
 	 game:GetService("ReplicatedStorage"):WaitForChild("PlayerRemotes"):WaitForChild(game.Players.LocalPlayer.Name.."|ServerScriptService.Skills.Skills.SkillContainer.Suna-Suna.Desert Spada"):FireServer(unpack(args))
-	end
 end
 
 --SERVER HOP
 
 function NormalServerHop()
-	local Player = game.Players.LocalPlayer    
+	local Player = game.Players.LocalPlayer
 	local Http = game:GetService("HttpService")
 	local TPS = game:GetService("TeleportService")
 	local Api = "https://games.roblox.com/v1/games/"
@@ -187,7 +280,7 @@ function NormalServerHop()
 			if s then break end
 		end
 	end
-	
+
 	Next = Servers.nextPageCursor
 	until not Next
 end
@@ -257,7 +350,7 @@ end
 
 	-- CHECKS WHO IS LOGGED IN
 
-	local userName 
+	local userName
 
 	local JaredHWID = "2A98BE20-F47D-4AEB-B4A3-74F3A9761D6F"
 
@@ -267,7 +360,7 @@ end
 
 	local HWID = game:GetService("RbxAnalyticsService"):GetClientId()
 
-	if HWID == JaredHWID then 
+	if HWID == JaredHWID then
 		userName = "Jared"
 	elseif HWID == ClyHWID then
 		userName = "Cly"
@@ -349,7 +442,7 @@ local SunaXStackToggle = LocalPlayerTab:CreateToggle({
 	Flag = "SunaXToggle",
 	Callback = function (Value)
 		getgenv().SunaStack = Value
-		if Value then 
+		if Value then
 			SunaStack()
 		end
 	end
@@ -396,6 +489,14 @@ local AutoFarmTab = Window:CreateTab("Farm")
 
 -- AUTO PELI SECTION
 
+local AntiAFKButton = AutoFarmTab:CreateButton({
+	Name = "Anti AFK",
+	Callback = function ()
+		AntiAFK()
+	end
+})
+
+
 local AutoPeliSection = AutoFarmTab:CreateSection("Auto Peli")
 
 local AutoPeliLabel = AutoFarmTab:CreateLabel("Auto Farms Chests on Starter Island")
@@ -405,9 +506,9 @@ local AutoPeliToggle = AutoFarmTab:CreateToggle({
 	CurrentValue = false,
 	Flag = "AutoPeliToggle",
 	Callback = function (Value)
-		getgenv().AutoPeli = Value
+		getgenv().AutoTweenChests = Value
 		if Value then
-			AutoFarmPeli()
+			TweenToChests()
 		end
 	end
 })
@@ -415,6 +516,28 @@ local AutoPeliToggle = AutoFarmTab:CreateToggle({
 -- VISUALS TAB
 
 local VisualsTab = Window:CreateTab("Visuals")
+
+
+-- REDUCE CPU USAGE SECTION
+
+local ReduceCPUUsageSection = VisualsTab:CreateSection("Reduce CPU Usage")
+
+local WhiteScreenToggle = VisualsTab:CreateToggle({
+    Name = "Disable 3D Rendering (Only When Window Is Not Focused)",
+    CurrentValue = false,
+    Flag = "WhiteScreenToggle",
+    Callback = function (Value)
+		while Value do
+			if iswindowactive() then
+				print('window active no white screen')
+				WhiteScreen(true)
+			else 
+				WhiteScreen(not Value)
+			end
+			wait(2)
+		end
+    end
+})
 
 -- FOV SECTION
 
